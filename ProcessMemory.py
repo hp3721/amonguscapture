@@ -6,16 +6,18 @@ class ProcessMemory():
     def __init__(self):
         self.WinAPI = self.WinAPI()
 
-        self.is64Bit = None
         self.processPid = -1
         self.processHandler = None
         self.modules = []
         self.IsHooked = False
 
-    def getpid(self, nameprocess):
+    def getpid(self, nameprocess: str):
         for process in psutil.process_iter():
-            if nameprocess in process.name():
-                return process.pid
+            try:
+                if nameprocess in process.name():
+                    return process.pid
+            except (PermissionError, psutil.AccessDenied):
+                continue
         return -1
 
     def HookProcess(self, name: str):
@@ -25,9 +27,6 @@ class ProcessMemory():
             if self.processPid != -1:
                 self.processHandler = win32api.OpenProcess(0x410, 0, self.processPid)
                 if self.processHandler != None and psutil.pid_exists(self.processPid):
-                    flag = win32process.IsWow64Process(self.processHandler)
-                    is64Bit = platform.machine().endswith('64') and flag
-
                     moduleIds = win32process.EnumProcessModulesEx(self.processHandler, 0x3)
                     if len(moduleIds) > 0:
                         for moduleId in moduleIds:
@@ -41,7 +40,7 @@ class ProcessMemory():
                             m.MemorySize = moduleInfo.ModuleSize
                             m.Name = moduleName
                             self.modules.append(m)
-                    self.IsHooked = True        
+                    self.IsHooked = True
         return self.IsHooked
 
     def ReadPointer(self, address: int, offsets: list, numBytes: int):
@@ -56,15 +55,15 @@ class ProcessMemory():
         last = offsets[-1] if len(offsets) > 0 else 0
         b = self.Read(address + last, numBytes)
         return b
-    
+
     def ReadString(self, address: int):
         if self.processHandler == None or address == 0:
             return 0
-        
+
         stringLength = struct.unpack('<L', self.Read(address + 0x8, 4))[0]
         rawString = bytes(self.Read(address + 0xC, stringLength << 1))
         return rawString.decode("utf16")
-    
+
     def Read(self, address: int, numBytes: int):
         if self.processHandler == None or address == 0:
             return 0
@@ -90,7 +89,7 @@ class ProcessMemory():
             moduleInfo = ProcessMemory.ModuleInfo()
             _GetModuleInformation(processHandle.handle, moduleId, byref(moduleInfo), sizeof(moduleInfo))
             return moduleInfo
-        
+
         @staticmethod
         def ReadProcessMemory(processHandle, address, numBytes):
             _ReadProcessMemory = WinDLL("kernel32").ReadProcessMemory
