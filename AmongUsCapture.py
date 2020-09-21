@@ -48,6 +48,9 @@ class AmongUsCapture():
             meetingHudState = self.ProcessMemory.ReadPointer(self.GameAssemblyPtr, [0xDA58D0, 0x5C, 0, 0x84], 1)[0]
             
             allPlayersPtr = struct.unpack("<L", self.ProcessMemory.ReadPointer(self.GameAssemblyPtr, [0xDA5A60, 0x5C, 0, 0x24], 4))[0]
+            if not allPlayersPtr:
+                sleep(0.25)
+                continue
             allPlayers = struct.unpack("<L", self.ProcessMemory.ReadPointer(allPlayersPtr, [0x8], 4))[0]
             playerCount = self.ProcessMemory.ReadPointer(allPlayersPtr, [0xC], 1)[0]
 

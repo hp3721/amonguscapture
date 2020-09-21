@@ -1,6 +1,6 @@
 from ctypes import *
 from ctypes.wintypes import *
-import psutil, platform, win32api, win32process, struct
+import psutil, platform, win32api, win32process, struct, sys
 
 class ProcessMemory():
     def __init__(self):
@@ -30,14 +30,10 @@ class ProcessMemory():
                     moduleIds = win32process.EnumProcessModulesEx(self.processHandler, 0x3)
                     if len(moduleIds) > 0:
                         for moduleId in moduleIds:
-                            fileName = str(win32process.GetModuleFileNameEx(self.processHandler, moduleId))
                             moduleName = self.WinAPI.GetModuleBaseName(self.processHandler, c_void_p(moduleId))
                             moduleInfo = self.WinAPI.GetModuleInformation(self.processHandler, c_void_p(moduleId))
                             m = self.Module()
                             m.BaseAddress = moduleInfo.BaseAddress
-                            m.EntryPointAddress = moduleInfo.EntryPoint
-                            m.FileName = fileName
-                            m.MemorySize = moduleInfo.ModuleSize
                             m.Name = moduleName
                             self.modules.append(m)
                     self.IsHooked = True
@@ -96,16 +92,13 @@ class ProcessMemory():
             _ReadProcessMemory.argtypes = [HANDLE, LPCVOID, LPVOID, c_size_t, POINTER(c_size_t)]
             _ReadProcessMemory.restype = BOOL
             data = (c_uint8*numBytes)()
-            bytesRead = c_ulonglong()
+            bytesRead = c_ulonglong() if sys.maxsize > 2**32 else c_ulong()
             _ReadProcessMemory(processHandle.handle, address, byref(data), sizeof(data), byref(bytesRead))
             return data
 
     class Module(Structure):
         _fields_ = [
             ("BaseAddress", LPVOID),    # remote pointer
-            ("EntryPointAddress", LPVOID),    # remote pointer
-            ("FileName", LPWSTR),
-            ("MemorySize", DWORD),
             ("Name", LPWSTR),
         ]
 
