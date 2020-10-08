@@ -43,11 +43,11 @@ class AmongUsCapture():
                             modulesLeft -= 1
 
             state = self.GameState.NONE
-            inGame = bool(self.ProcessMemory.ReadPointer(self.UnityPlayerPtr, [0x127B310, 0xF4, 0x18, 0xA8], 1)[0])
-            inMeeting = bool(self.ProcessMemory.ReadPointer(self.UnityPlayerPtr, [0x12A7A14, 0x64, 0x54, 0x18], 1)[0])
-            meetingHudState = self.ProcessMemory.ReadPointer(self.GameAssemblyPtr, [0xDA58D0, 0x5C, 0, 0x84], 1)[0]
+            # inGame = bool(self.ProcessMemory.ReadPointer(self.UnityPlayerPtr, [0x127B310, 0xF4, 0x18, 0xA8], 1)[0])
+            gameState = self.ProcessMemory.ReadPointer(self.GameAssemblyPtr, [0x5C, 0, 0x64], 1)[0]
+            meetingHudState = self.ProcessMemory.ReadPointer(self.GameAssemblyPtr, [0x14686A0, 0x5C, 0, 0x84], 1)[0]
             
-            allPlayersPtr = struct.unpack("<L", self.ProcessMemory.ReadPointer(self.GameAssemblyPtr, [0xDA5A60, 0x5C, 0, 0x24], 4))[0]
+            allPlayersPtr = struct.unpack("<L", self.ProcessMemory.ReadPointer(self.GameAssemblyPtr, [0x1468864, 0x5C, 0, 0x24], 4))[0]
             if not allPlayersPtr:
                 sleep(0.25)
                 continue
@@ -56,9 +56,9 @@ class AmongUsCapture():
 
             playerAddrPtr = allPlayers + 0x10
 
-            if not inGame or (inMeeting and meetingHudState > 2 and self.ExileEndsGame()):
+            if not gameState or (meetingHudState > 2 and self.ExileEndsGame()):
                 state = self.GameState.LOBBY
-            elif inMeeting and (self.muteAfterExile or meetingHudState < 4):
+            elif meetingHudState < 4:
                 state = self.GameState.DISCUSSION
             else:
                 state = self.GameState.TASKS
